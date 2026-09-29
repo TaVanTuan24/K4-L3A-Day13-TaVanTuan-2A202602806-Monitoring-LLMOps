@@ -22,8 +22,8 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 | Pytest cuối | `evidence/01-pytest.txt` |
 | Log validator | `evidence/02-log-validator.txt` |
 | Dashboard validator | `evidence/03-dashboard-validator.txt` |
-| Structured log | `evidence/04-structured-log.png` |
-| PII redaction | `evidence/05-pii-redaction.png` |
+| Structured log | `evidence/04-structured-log.txt` |
+| PII redaction | `evidence/05-pii-redaction.txt` |
 | Trace list | `evidence/06-trace-list.png` (TODO: Langfuse UI) |
 | Trace waterfall | `evidence/07-trace-waterfall.png` (TODO: Langfuse UI) |
 | Trace metadata | `evidence/08-trace-metadata.png` (TODO: Langfuse UI) |

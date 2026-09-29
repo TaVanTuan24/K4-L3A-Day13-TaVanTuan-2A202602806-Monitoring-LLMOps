@@ -1,0 +1,6 @@
+=== PII redaction (message_preview đã scrub trước khi ghi) ===
+(REDACTED_EMAIL / REDACTED_PHONE_VN / REDACTED_CCCD / REDACTED_CREDIT_CARD)
+
+{"service": "api", "payload": {"message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "env": "dev", "user_id_hash": "2055254ee30a", "session_id": "s01", "correlation_id": "req-90d4821d", "level": "info", "ts": "2026-09-29T09:25:41.984862Z"}
+{"service": "api", "payload": {"message_preview": "Here is my phone [REDACTED_PHONE_VN], what should be logged?"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "env": "dev", "user_id_hash": "64f6ec689229", "session_id": "s05", "correlation_id": "req-13a04361", "level": "info", "ts": "2026-09-29T09:25:42.637487Z"}
+{"service": "api", "payload": {"message_preview": "What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?"}, "event": "request_received", "feature": "qa", "model": "claude-sonnet-4-5", "env": "dev", "user_id_hash": "4d14d5d4f719", "session_id": "s09", "correlation_id": "req-8535c22a", "level": "info", "ts": "2026-09-29T09:25:43.303633Z"}
