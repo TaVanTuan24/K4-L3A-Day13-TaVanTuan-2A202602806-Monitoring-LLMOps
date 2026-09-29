@@ -8,14 +8,11 @@
 - **MSSV:** 2A202602806
 - **Lớp:** K4-L3A
 - **Repository URL:** <https://github.com/TaVanTuan24/K4-L3A-Day13-TaVanTuan-2A202602806-Monitoring-LLMOps>
-- **Commit SHA cuối:** `b3332ee`
+- **Submission content commit:** `b3332ee`
 - **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602806`
 
 ## 2. Evidence index
-
-Điền đúng đường dẫn tới evidence thực tế. Có thể đổi tên hoặc dùng nhiều ảnh nếu cần.
-Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự chụp trên Langfuse/terminal.
 
 | Evidence | Đường dẫn |
 | --- | --- |
@@ -43,7 +40,7 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 | `pytest` | 22 passed | **36 passed** | Thêm 14 test (PII, correlation ID, tracing, dashboard + 60-min window) |
 | Số traces hợp lệ | 0 | ≥20 (trace ID + screenshot) | trace ID thật trong §7 + `06-trace-list.png` |
 | Số PII leak | — | 0 | email/phone/CCCD/credit card đều redact |
-| Latency P95 / TTFT P95 | — | 152 ms / 50 ms | workload sạch, prompt đã cache (không warmup spike) |
+| Latency P95 / TTFT P95 | — | 152 ms (clean) / 50 ms | clean workload ≈ 152 ms; dashboard final (sau nhiều workload + `rag_slow`) P95 = 2554 ms |
 | Retrieval success rate | — | 100 % (clean) | đếm trên mọi event `tool_name=retrieval`; `tool_fail` → 50 % (đã kiểm chứng) |
 
 ## 4. Logging và PII
@@ -75,8 +72,7 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 
 - **Cách xác nhận traces do chính tôi tạo trong project cá nhân:**
   `tracing_enabled()` trả `true` khi `.env` có public/secret key (đã xác nhận qua `/health`).
-  `python scripts/load_test.py` gửi 10 request → mỗi request tạo 1 trace.
-  *(Điền danh sách trace IDs sau khi mở project trên Langfuse UI.)*
+  `python scripts/load_test.py` gửi 10 request → mỗi request tạo 1 trace (danh sách tại `evidence/06-trace-list.png`).
 
 - **Cấu trúc root/retrieval/generation observations:**
   Root `lab-agent-run` (loại `agent`, `capture_input=False`, `capture_output=False`) từ `@observe`.
@@ -95,15 +91,10 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 - **Prompt name:** `day13-chat` (từ `LANGFUSE_PROMPT_NAME`).
 - **Version/label baseline:** version 1, labels `baseline` + `production`.
 - **Version/label candidate:** version 2, label `candidate`.
-- **Trace ID của mỗi version:** *(Chạy cùng input với `LANGFUSE_PROMPT_LABEL=baseline` và
-  `candidate`, mở 2 trace và dán ID vào đây.)*
-- **Cách promote và rollback `production`:**
-  Đã tạo prompt v1/v2 bằng script `scripts/setup_prompts.py` (SDK, không cần UI). Chuyển label
-  `production` v1 → v2 rồi rollback là thao tác UI (SDK v4 không move label an toàn). Bước UI:
-  1. Langfuse → Prompts → `day13-chat` → version 2 → **Set as production** (promote).
-  2. Chạy `python scripts/load_test.py`; mở trace kiểm tra `prompt_label=production`, `prompt_version=2`.
-  3. Version 1 → **Set as production** (rollback); chạy lại và chụp trace.
-  4. Chụp ảnh trước/sau làm evidence `10-prompt-rollback.png`.
+- **Promote/rollback `production` (đã thực hiện):**
+  - **production → v2:** trace `1d6db1fffb83909b11862d58e5f7f298` xác nhận `prompt_version=2`.
+  - **rollback production → v1:** trace `574fbcda540cd30c2228047f4100ed73` xác nhận `prompt_version=1`.
+  - Evidence: `09-prompt-versions.png`, `10-prompt-rollback.png` (+ `10a/10b/10c`).
 
 ## 6. Dashboard, SLO và alerts
 
@@ -116,6 +107,9 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
   Retrieval success đếm trên mọi event có `tool_name=retrieval` và `tool_success != null` (gồm cả
   `request_failed`) — nên retrieval lỗi/`tool_fail` làm số này giảm đúng. Hiển thị rõ time range 60
   phút, đơn vị và threshold/SLO. Chạy `streamlit run dashboard.py`.
+
+- **Runtime dashboard cuối:** sau nhiều workload + incident (`rag_slow`), panel Latency hiển thị
+  `P95 = 2554 ms` (log tích lũy gồm cả request chậm); clean workload đơn lẻ `P95 ≈ 152 ms`.
 
 - **SLO và lý do chọn:**
   `config/slo.yaml`: SLI `fast_successful_requests` (good = `response_sent and latency_ms <= 3000`),
@@ -134,7 +128,7 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 
 ## 7. Điều tra challenge
 
-- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1` (cohort `K4`, incident `rag_slow`, seed `1311`, `latency_threshold_ms = 2000`)
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1` (cohort `K4`, incident `rag_slow`, `latency_threshold_ms = 2000`)
 - **Khoảng thời gian điều tra:** 2026-09-29 ~09:21:45–09:21:59 UTC (chạy `python scripts/load_test.py --challenge --concurrency 5`)
 - **Triệu chứng từ metrics:** `latency_p95 = 2653 ms` (vượt ngưỡng 2000 ms), `latency_p50 = 152 ms`; 5/15 request (challenge) chậm ~2652 ms; `error_breakdown = {}` (không có lỗi — retrieval vẫn `tool_success=true`, chỉ chậm).
 - **Log line và correlation ID liên quan:** `req-31e301e9` (session `k4-l3a-challenge-s05`, `feature=monitoring`, `latency_ms=2653`, `tool_name=retrieval`, `tool_success=true`). Các correlation ID còn lại: `req-924213bf`, `req-5fe92b1f`, `req-f1e4ecf0`, `req-6a9824dc` — đều `latency_ms ≈ 2652`.
@@ -182,15 +176,14 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
   trước khi dữ liệu được serialize; trace có child span mới khoanh vùng được root cause.
 
 - **Hạn chế hoặc phần chưa hoàn thành, nếu có:**
-  - Evidence trace/prompt/rollback cần người dùng tự chụp trên Langfuse UI (agent không có browser/login).
   - Warmup trace latency ở request đầu tiên chưa được loại bỏ hoàn toàn (do prompt fetch).
 
 ## 9. Checklist trước khi nộp
 
-- [ ] Kết quả và evidence thuộc commit SHA cuối.
-- [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
-- [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] Kết quả và evidence thuộc commit SHA cuối.
+- [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
+- [x] Incident evidence nối đúng metric → log → trace.
+- [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
