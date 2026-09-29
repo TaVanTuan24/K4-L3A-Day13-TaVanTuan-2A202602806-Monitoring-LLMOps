@@ -4,13 +4,13 @@
 
 ## 1. Thông tin học viên
 
-- **Họ và tên:** (điền)
-- **MSSV:** (điền)
+- **Họ và tên:** Tạ Văn Tuấn
+- **MSSV:** 2A202602806
 - **Lớp:** K4-L3A
-- **Repository URL:** (điền)
-- **Commit SHA cuối:** (điền)
-- **Challenge ID:** Không thực hiện CP3 trong task này.
-- **Tên project Langfuse cá nhân:** `day13-k4-l3a-<MSSV>` (điền MSSV)
+- **Repository URL:** <https://github.com/TaVanTuan24/K4-L3A-Day13-TaVanTuan-2A202602806-Monitoring-LLMOps>
+- **Commit SHA cuối:** (cập nhật sau commit cuối)
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
+- **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602806`
 
 ## 2. Evidence index
 
@@ -18,7 +18,7 @@
 Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự chụp trên Langfuse/terminal.
 
 | Evidence | Đường dẫn |
-|---|---|
+| --- | --- |
 | Pytest cuối | `evidence/01-pytest.txt` |
 | Log validator | `evidence/02-log-validator.txt` |
 | Dashboard validator | `evidence/03-dashboard-validator.txt` |
@@ -30,18 +30,18 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 | Prompt versions | `evidence/09-prompt-versions.png` (TODO: Langfuse UI) |
 | Prompt rollback | `evidence/10-prompt-rollback.png` (TODO: Langfuse UI) |
 | Dashboard runtime | `evidence/11-dashboard-overview.png` |
-| Incident metric | `evidence/12-incident-metric.png` |
-| Incident log | `evidence/13-incident-log.png` |
-| Incident trace | `evidence/14-incident-trace.png` (TODO: Langfuse UI) |
+| Incident metric | `evidence/12-incident-metric.txt` |
+| Incident log | `evidence/13-incident-log.txt` |
+| Incident trace | `evidence/14-incident-trace.txt` (trace thật qua SDK; ảnh UI: TODO) |
 
 ## 3. Kết quả kỹ thuật
 
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
-|---|---|---|---|
-| `validate_logs.py` | Chưa đạt (starter TODO) | **100/100** | 21 records, 10 correlation IDs, 0 PII leak, 0 thiếu field |
+| --- | --- | --- | --- |
+| `validate_logs.py` | Chưa đạt (starter TODO) | **100/100** | 20 records, 10 correlation IDs, 0 PII leak, 0 thiếu field |
 | `validate_dashboard.py` | 6/6 | **6/6** | Contract `config/dashboard.yaml` giữ nguyên |
 | `pytest` | 22 passed | **36 passed** | Thêm 14 test (PII, correlation ID, tracing, dashboard + 60-min window) |
-| Số traces hợp lệ | 0 | ≥10 (đã trigger; xác nhận UI) | `load_test.py` gửi 10 request với `tracing_enabled=true` |
+| Số traces hợp lệ | 0 | ≥15 (đã xác nhận trace ID) | 10 traces CP2 + 5 traces challenge (trace ID thật trong §7) |
 | Số PII leak | — | 0 | email/phone/CCCD/credit card đều redact |
 | Latency P95 / TTFT P95 | — | 152 ms / 50 ms | workload sạch, prompt đã cache (không warmup spike) |
 | Retrieval success rate | — | 100 % (clean) | đếm trên mọi event `tool_name=retrieval`; `tool_fail` → 50 % (đã kiểm chứng) |
@@ -134,16 +134,20 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 
 ## 7. Điều tra challenge
 
-> Task này chỉ hoàn thành CP1 + CP2, **không** chạy CP3 challenge chính thức.
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1` (cohort `K4`, incident `rag_slow`, seed `1311`, `latency_threshold_ms = 2000`)
+- **Khoảng thời gian điều tra:** 2026-09-29 ~09:21:45–09:21:59 UTC (chạy `python scripts/load_test.py --challenge --concurrency 5`)
+- **Triệu chứng từ metrics:** `latency_p95 = 2653 ms` (vượt ngưỡng 2000 ms), `latency_p50 = 152 ms`; 5/15 request (challenge) chậm ~2652 ms; `error_breakdown = {}` (không có lỗi — retrieval vẫn `tool_success=true`, chỉ chậm).
+- **Log line và correlation ID liên quan:** `req-31e301e9` (session `k4-l3a-challenge-s05`, `feature=monitoring`, `latency_ms=2653`, `tool_name=retrieval`, `tool_success=true`). Các correlation ID còn lại: `req-924213bf`, `req-5fe92b1f`, `req-f1e4ecf0`, `req-6a9824dc` — đều `latency_ms ≈ 2652`.
+- **Trace ID và span gây ảnh hưởng:** `7499c145757922c45a08e3442b910d78` (session `k4-l3a-challenge-s05`, `user_id_hash=ed72e61117f6` khớp log). Cây: `lab-agent-run (2654 ms) → retrieval (2501 ms) + generation (151 ms)`. **Affected span = `retrieval`.**
+- **Root cause:** incident `rag_slow` chèn `time.sleep(2.5)` vào `mock_rag.retrieve()`, khiến span `retrieval` tăng từ ~0 ms lên ~2500 ms — chiếm gần toàn bộ latency request và đẩy P95 vượt ngưỡng 2000 ms, dù retrieval vẫn thành công.
+- **Fix action:** `python scripts/inject_incident.py --scenario rag_slow --disable` (đã thực hiện).
+- **Preventive measure:** giữ SLO `latency P95 <= 3000 ms` + alert `high_latency_p95`; tách span `retrieval` riêng để khoanh vùng; thêm timeout/circuit-breaker cho bước retrieval.
 
-- **Challenge ID:** Không áp dụng.
-- **Khoảng thời gian điều tra:** Không áp dụng.
-- **Triệu chứng từ metrics:** (practice) bật `rag_slow` thấy P95 tăng từ ~151 ms → ~2652 ms.
-- **Log line và correlation ID liên quan:** (practice) `req-42f30bee` (7988 ms), `req-33df1654` (13314.8 ms).
-- **Trace ID và span gây ảnh hưởng:** (practice) span `retrieval` chậm (2.5 s sleep trong `mock_rag.retrieve`).
-- **Root cause:** (practice) incident `rag_slow` làm chậm bước retrieval.
-- **Fix action:** Tắt `python scripts/inject_incident.py --scenario rag_slow --disable` (đã thực hiện).
-- **Preventive measure:** Đặt SLO latency + alert `high_latency_p95`, giữ span retrieval riêng để khoanh vùng.
+**Luồng điều tra (Metrics → Logs → Traces) trên chính incident này:**
+
+1. **Metrics:** `/metrics` cho thấy P95 tăng (baseline ~1625 ms → incident 2653 ms), khoanh vùng khoảng thời gian ~09:21:45–09:21:59 UTC.
+2. **Logs:** lọc `data/logs.jsonl` trong khoảng đó, lấy request chậm `req-31e301e9` (session `k4-l3a-challenge-s05`, `latency_ms=2653`).
+3. **Traces:** truy vấn Langfuse theo `session_id=k4-l3a-challenge-s05` → trace `7499c145...` → so sánh span `retrieval` (2501 ms) vs `generation` (151 ms) → khoanh vùng `retrieval` là span gây chậm → kết luận root cause `rag_slow`.
 
 ## 8. Giải thích và tự đánh giá
 
@@ -155,6 +159,9 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 - **Một lỗi/blocker đã gặp:**
   Langfuse SDK v4 gây latency cao ở lần đầu và khi chạy nhiều concurrency (first-request ~1.9–2.7 s,
   và HTTP latency ở `--concurrency 5` + `rag_slow` lên ~13 s do background flush/backpressure).
+  Ngoài ra, Langfuse Cloud đã deprecate API cũ (`GET /api/public/traces` trả 410 cho org tạo sau
+  16/09/2026); đã chuyển sang `GET /api/public/v2/observations` qua SDK
+  `client.api.observations.get_many` để lấy trace ID + span thật (không fake).
 
 - **Cách tìm nguyên nhân và xử lý:**
   Đối chiếu latency đo trong agent (`result.latency_ms`, ~151 ms steady-state) với HTTP latency
@@ -185,8 +192,8 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 
 - [ ] Kết quả và evidence thuộc commit SHA cuối.
 - [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
+- [x] Incident evidence nối đúng metric → log → trace.
 - [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.

@@ -1,0 +1,13 @@
+=== CP3 Incident Trace Evidence (Langfuse, fetched via SDK) ===
+Root: lab-agent-run (AGENT) -> children: retrieval (RETRIEVER) + generation (GENERATION)
+
+=== session k4-l3a-challenge-s05 ===
+  generation | type=GENERATION | latency=151.0ms | trace_id=7499c145757922c45a08e3442b910d78 | user_id_hash=ed72e61117f6 | version=
+  retrieval | type=RETRIEVER | latency=2501.0ms | trace_id=7499c145757922c45a08e3442b910d78 | user_id_hash=ed72e61117f6 | version=
+  lab-agent-run | type=AGENT | latency=2654.0ms | trace_id=7499c145757922c45a08e3442b910d78 | user_id_hash=ed72e61117f6 | version=1
+
+=== session k4-l3a-challenge-s01 ===
+  generation | type=GENERATION | latency=152.0ms | trace_id=d1ad7350100f9b7bb849aec02ab9c732 | user_id_hash=dde2e75b20cf | version=
+  lab-agent-run | type=AGENT | latency=2653.0ms | trace_id=d1ad7350100f9b7bb849aec02ab9c732 | user_id_hash=dde2e75b20cf | version=1
+  retrieval | type=RETRIEVER | latency=2501.0ms | trace_id=d1ad7350100f9b7bb849aec02ab9c732 | user_id_hash=dde2e75b20cf | version=
+

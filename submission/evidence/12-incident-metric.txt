@@ -1,0 +1,11 @@
+=== CP3 Incident Metric Evidence ===
+Challenge ID: day13-k4-l3a-monitoring-llmops-v1
+Incident: rag_slow (latency_threshold_ms = 2000)
+
+--- Baseline (clean workload, /metrics) ---
+traffic=10, latency_p50=151ms, latency_p95=1625ms, ttft_p95=50ms, error_rate=0%
+
+--- Incident (rag_slow enabled, /metrics) ---
+traffic=15, latency_p50=152.0ms, latency_p95=2653.0ms, latency_p99=2653.0ms, ttft_p95=50.0ms, error_breakdown={}
+
+Symptom: tail latency (P95) vuot 2000ms (2653ms); khong co error (retrieval van success nhung bi cham).
