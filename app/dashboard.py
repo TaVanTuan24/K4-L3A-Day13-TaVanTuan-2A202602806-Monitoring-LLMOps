@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -17,6 +18,39 @@ def percentile(values: list[float], p: float) -> float:
     items = sorted(values)
     index = max(0, min(len(items) - 1, round((p / 100) * len(items) + 0.5) - 1))
     return float(items[index])
+
+
+def _parse_ts(value: Any) -> datetime | None:
+    """Parse ISO-8601 ``ts`` sang aware UTC; trả ``None`` nếu không hợp lệ."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def filter_window(
+    records: list[dict[str, Any]],
+    now: datetime | None = None,
+    window_minutes: int = WINDOW_MINUTES,
+) -> list[dict[str, Any]]:
+    """Chỉ giữ record có ``ts`` trong ``window_minutes`` gần nhất tính tới ``now``."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    cutoff = now - timedelta(minutes=window_minutes)
+
+    result: list[dict[str, Any]] = []
+    for record in records:
+        ts = _parse_ts(record.get("ts"))
+        if ts is not None and ts >= cutoff:
+            result.append(record)
+    return result
 
 
 def load_records(path: str | Path = DEFAULT_LOG_PATH) -> list[dict[str, Any]]:
@@ -36,8 +70,13 @@ def load_records(path: str | Path = DEFAULT_LOG_PATH) -> list[dict[str, Any]]:
     return records
 
 
-def compute_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Tính metric cho 6 panel dashboard từ danh sách log records."""
+def compute_metrics(
+    records: list[dict[str, Any]],
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Tính metric cho 6 panel dashboard, chỉ trong cửa sổ 60 phút gần nhất."""
+    records = filter_window(records, now=now)
+
     responses = [r for r in records if r.get("event") == "response_sent"]
     received = [r for r in records if r.get("event") == "request_received"]
     failed = [r for r in records if r.get("event") == "request_failed"]
@@ -53,10 +92,12 @@ def compute_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
     for r in failed:
         error_breakdown[r.get("error_type") or "unknown"] += 1
 
+    # Retrieval success: đếm trên MỌI event có tool_name == "retrieval" và
+    # tool_success != null (bao gồm cả request_failed do retrieval lỗi).
     retrieval_ok = 0
     retrieval_total = 0
-    for r in responses:
-        if r.get("tool_name") == "retrieval":
+    for r in records:
+        if r.get("tool_name") == "retrieval" and r.get("tool_success") is not None:
             retrieval_total += 1
             if r.get("tool_success") is True:
                 retrieval_ok += 1

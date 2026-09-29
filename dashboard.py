@@ -16,7 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app.dashboard import WINDOW_MINUTES, compute_metrics, load_records  # noqa: E402
+from app.dashboard import WINDOW_MINUTES, compute_metrics, filter_window, load_records  # noqa: E402
 
 st.set_page_config(page_title="Day 13 Monitoring & LLMOps", layout="wide")
 
@@ -26,17 +26,24 @@ st.caption(
 )
 
 records = load_records(REPO_ROOT / "data" / "logs.jsonl")
+window_records = filter_window(records)
 metrics = compute_metrics(records)
 
-if not records:
-    st.warning("Chưa có dữ liệu trong `data/logs.jsonl`. Chạy `python scripts/load_test.py` trước.")
+if not window_records:
+    st.warning(
+        "Chưa có dữ liệu trong cửa sổ 60 phút gần nhất của `data/logs.jsonl`. "
+        "Chạy `python scripts/load_test.py` trước."
+    )
     st.stop()
 
-st.caption(f"{len(records)} log records loaded · {metrics['traffic']['request_count']} request_received events.")
+st.caption(
+    f"{len(window_records)} records trong 60 phút gần nhất · "
+    f"{metrics['traffic']['request_count']} request_received events."
+)
 
 
 def _frame() -> pd.DataFrame:
-    df = pd.DataFrame(records)
+    df = pd.DataFrame(window_records)
     df["ts"] = pd.to_datetime(df["ts"], utc=True, errors="coerce")
     return df
 

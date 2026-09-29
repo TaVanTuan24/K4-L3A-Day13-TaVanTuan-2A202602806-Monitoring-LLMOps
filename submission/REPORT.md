@@ -40,11 +40,11 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 |---|---|---|---|
 | `validate_logs.py` | Chưa đạt (starter TODO) | **100/100** | 21 records, 10 correlation IDs, 0 PII leak, 0 thiếu field |
 | `validate_dashboard.py` | 6/6 | **6/6** | Contract `config/dashboard.yaml` giữ nguyên |
-| `pytest` | 22 passed | **34 passed** | Thêm 12 test (PII, correlation ID, tracing, dashboard) |
+| `pytest` | 22 passed | **36 passed** | Thêm 14 test (PII, correlation ID, tracing, dashboard + 60-min window) |
 | Số traces hợp lệ | 0 | ≥10 (đã trigger; xác nhận UI) | `load_test.py` gửi 10 request với `tracing_enabled=true` |
 | Số PII leak | — | 0 | email/phone/CCCD/credit card đều redact |
-| Latency P95 / TTFT P95 | — | 1326 ms / 50 ms | first-request warmup ~1326 ms; steady-state ~151 ms |
-| Retrieval success rate | — | 100 % | `tool_success=true` trên mọi `response_sent` |
+| Latency P95 / TTFT P95 | — | 152 ms / 50 ms | workload sạch, prompt đã cache (không warmup spike) |
+| Retrieval success rate | — | 100 % (clean) | đếm trên mọi event `tool_name=retrieval`; `tool_fail` → 50 % (đã kiểm chứng) |
 
 ## 4. Logging và PII
 
@@ -108,11 +108,14 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 ## 6. Dashboard, SLO và alerts
 
 - **Dashboard và sáu panel:**
-  `dashboard.py` (Streamlit + pandas) đọc `data/logs.jsonl` và dựng đúng 6 panel theo
-  `config/dashboard.yaml`: Latency (P50/P95/P99 + TTFT P95, threshold P95<=3000 ms),
+  `dashboard.py` (Streamlit + pandas) đọc `data/logs.jsonl` và **chỉ tính dữ liệu trong 60 phút
+  gần nhất** theo field `ts` (`app/dashboard.filter_window`, `WINDOW_MINUTES=60`), dựng đúng 6 panel
+  theo `config/dashboard.yaml`: Latency (P50/P95/P99 + TTFT P95, threshold P95<=3000 ms),
   Traffic (request count, requests/minute), Errors & Retrieval (error rate %, breakdown,
   retrieval success %), Cost (total + cost by minute), Tokens (input/output), Quality (mean).
-  Hiển thị rõ time range 60 phút, đơn vị và threshold/SLO. Chạy `streamlit run dashboard.py`.
+  Retrieval success đếm trên mọi event có `tool_name=retrieval` và `tool_success != null` (gồm cả
+  `request_failed`) — nên retrieval lỗi/`tool_fail` làm số này giảm đúng. Hiển thị rõ time range 60
+  phút, đơn vị và threshold/SLO. Chạy `streamlit run dashboard.py`.
 
 - **SLO và lý do chọn:**
   `config/slo.yaml`: SLI `fast_successful_requests` (good = `response_sent and latency_ms <= 3000`),
