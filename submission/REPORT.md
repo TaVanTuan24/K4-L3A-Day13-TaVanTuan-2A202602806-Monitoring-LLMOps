@@ -8,7 +8,7 @@
 - **MSSV:** 2A202602806
 - **Lớp:** K4-L3A
 - **Repository URL:** <https://github.com/TaVanTuan24/K4-L3A-Day13-TaVanTuan-2A202602806-Monitoring-LLMOps>
-- **Commit SHA cuối:**
+- **Commit SHA cuối:** `b3332ee`
 - **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602806`
 
