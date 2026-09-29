@@ -8,7 +8,7 @@
 - **MSSV:** 2A202602806
 - **Lớp:** K4-L3A
 - **Repository URL:** <https://github.com/TaVanTuan24/K4-L3A-Day13-TaVanTuan-2A202602806-Monitoring-LLMOps>
-- **Commit SHA cuối:** `84b3e49`
+- **Commit SHA cuối:**
 - **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1`
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602806`
 
@@ -24,24 +24,24 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 | Dashboard validator | `evidence/03-dashboard-validator.txt` |
 | Structured log | `evidence/04-structured-log.txt` |
 | PII redaction | `evidence/05-pii-redaction.txt` |
-| Trace list | `evidence/06-trace-list.png` (TODO: Langfuse UI) |
-| Trace waterfall | `evidence/07-trace-waterfall.png` (TODO: Langfuse UI) |
-| Trace metadata | `evidence/08-trace-metadata.png` (TODO: Langfuse UI) |
-| Prompt versions | `evidence/09-prompt-versions.png` (TODO: Langfuse UI) |
-| Prompt rollback | `evidence/10-prompt-rollback.png` (TODO: Langfuse UI) |
-| Dashboard runtime | `evidence/11-dashboard-overview.png` |
+| Trace list | `evidence/06-trace-list.png` |
+| Trace waterfall | `evidence/07-trace-waterfall.png` |
+| Trace metadata | `evidence/08-trace-metadata.png` |
+| Prompt versions | `evidence/09-prompt-versions.png` |
+| Prompt rollback | `evidence/10-prompt-rollback.png` (+ `10a/10b/10c`) |
+| Dashboard runtime | `evidence/11a-dashboard-latency-traffic.png`, `11b-dashboard-errors-cost.png`, `11c-dashboard-cost-tokens-quality.png` |
 | Incident metric | `evidence/12-incident-metric.txt` |
 | Incident log | `evidence/13-incident-log.txt` |
-| Incident trace | `evidence/14-incident-trace.txt` (trace thật qua SDK; ảnh UI: TODO) |
+| Incident trace | `evidence/14-incident-trace.png` (+ `14-incident-trace.txt` qua SDK) |
 
 ## 3. Kết quả kỹ thuật
 
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
 | --- | --- | --- | --- |
-| `validate_logs.py` | Chưa đạt (starter TODO) | **100/100** | 20 records, 10 correlation IDs, 0 PII leak, 0 thiếu field |
+| `validate_logs.py` | Chưa đạt (starter TODO) | **100/100** | 83 records, 40 correlation IDs, 0 PII leak, 0 thiếu field |
 | `validate_dashboard.py` | 6/6 | **6/6** | Contract `config/dashboard.yaml` giữ nguyên |
 | `pytest` | 22 passed | **36 passed** | Thêm 14 test (PII, correlation ID, tracing, dashboard + 60-min window) |
-| Số traces hợp lệ | 0 | ≥15 (đã xác nhận trace ID) | 10 traces CP2 + 5 traces challenge (trace ID thật trong §7) |
+| Số traces hợp lệ | 0 | ≥20 (trace ID + screenshot) | trace ID thật trong §7 + `06-trace-list.png` |
 | Số PII leak | — | 0 | email/phone/CCCD/credit card đều redact |
 | Latency P95 / TTFT P95 | — | 152 ms / 50 ms | workload sạch, prompt đã cache (không warmup spike) |
 | Retrieval success rate | — | 100 % (clean) | đếm trên mọi event `tool_name=retrieval`; `tool_fail` → 50 % (đã kiểm chứng) |
@@ -159,9 +159,6 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 - **Một lỗi/blocker đã gặp:**
   Langfuse SDK v4 gây latency cao ở lần đầu và khi chạy nhiều concurrency (first-request ~1.9–2.7 s,
   và HTTP latency ở `--concurrency 5` + `rag_slow` lên ~13 s do background flush/backpressure).
-  Ngoài ra, Langfuse Cloud đã deprecate API cũ (`GET /api/public/traces` trả 410 cho org tạo sau
-  16/09/2026); đã chuyển sang `GET /api/public/v2/observations` qua SDK
-  `client.api.observations.get_many` để lấy trace ID + span thật (không fake).
 
 - **Cách tìm nguyên nhân và xử lý:**
   Đối chiếu latency đo trong agent (`result.latency_ms`, ~151 ms steady-state) với HTTP latency
@@ -192,8 +189,8 @@ Các ảnh đánh dấu `TODO` là evidence runtime người dùng phải tự c
 
 - [ ] Kết quả và evidence thuộc commit SHA cuối.
 - [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [x] Incident evidence nối đúng metric → log → trace.
+- [ ] Incident evidence nối đúng metric → log → trace.
 - [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [x] Repository chạy lại được theo README.
-- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [ ] Repository chạy lại được theo README.
+- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
